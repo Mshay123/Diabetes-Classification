@@ -1,5 +1,4 @@
 import matplotlib
-
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -91,7 +90,6 @@ FEATURES = [
                  (5, "75,000$+")], "category": "חברה וגישה לרפואה", "tooltip": "מהי רמת ההכנסה השנתית שלך?"}
 ]
 
-# >>> הנה 4 השורות שהיו חסרות! <<<
 for f in FEATURES:
     if f["name"] in UNSUP_FEATURES:
         f["models"] = ["xgboost", "dl", "unsupervised"]
@@ -131,32 +129,19 @@ exp = dice_ml.Dice(d, m, method="genetic")
 
 # --- 4. פונקציות עזר ---
 def get_age_category(age):
-    if age < 25:
-        return 1
-    elif age < 30:
-        return 2
-    elif age < 35:
-        return 3
-    elif age < 40:
-        return 4
-    elif age < 45:
-        return 5
-    elif age < 50:
-        return 6
-    elif age < 55:
-        return 7
-    elif age < 60:
-        return 8
-    elif age < 65:
-        return 9
-    elif age < 70:
-        return 10
-    elif age < 75:
-        return 11
-    elif age < 80:
-        return 12
-    else:
-        return 13
+    if age < 25: return 1
+    elif age < 30: return 2
+    elif age < 35: return 3
+    elif age < 40: return 4
+    elif age < 45: return 5
+    elif age < 50: return 6
+    elif age < 55: return 7
+    elif age < 60: return 8
+    elif age < 65: return 9
+    elif age < 70: return 10
+    elif age < 75: return 11
+    elif age < 80: return 12
+    else: return 13
 
 
 # --- 5. נתיב ראשי ---
@@ -194,14 +179,19 @@ def index():
             prediction = int(pred)
             probability = round(prob, 2)
 
-            # הפקת גרף SHAP
+            # הפקת גרף SHAP (כולל תיקון המערכים)
             try:
                 plt.clf()
                 explainer = shap.TreeExplainer(xgb_model)
                 shap_values = explainer(df_input)
 
+                explanation = shap_values[0]
+                if len(explanation.values.shape) > 1:
+                    explanation.values = explanation.values[:, 1]
+                    explanation.base_values = explanation.base_values[1]
+
                 plt.figure(figsize=(10, 6))
-                shap.plots.waterfall(shap_values[0], show=False)
+                shap.plots.waterfall(explanation, show=False)
 
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png', bbox_inches='tight')
@@ -221,6 +211,7 @@ def index():
                     api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyA6L2n_HL2fpzyQNKDXDsoxS3FTRco_79A")
                     client = genai.Client(api_key=api_key)
                     content = f"מטופל עם סיכון לסוכרת. נתונים: {df_input.to_string()}\nשינויים מומלצים: {new_life.to_string()}\nכתוב המלצות רפואיות בעברית הכוללות צעדים מעשיים וצפי לשינוי. סכם בסוף שאתה מודל AI מבית Google ושזה אינו תחליף לייעוץ רפואי."
+                    # תיקון לגרסה 2.0 במקום 2.5
                     response = client.models.generate_content(model="gemini-2.5-flash", contents=content)
                     gemini_report = response.text
                 except Exception as e:
