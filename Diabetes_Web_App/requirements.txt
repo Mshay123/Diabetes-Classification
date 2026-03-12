@@ -1,0 +1,12 @@
+flask
+xgboost
+pandas
+numpy
+dice_ml
+shap
+tensorflow
+joblib
+google-genai
+matplotlib
+scikit-learn==1.6.1
+gunicorn
