@@ -222,12 +222,18 @@
                                         <label class="form-check-label ms-2" for="{{ feature.name }}">
                                             {{ feature.label }}
                                             <i class="bi bi-info-circle-fill info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ feature.tooltip }}"></i>
+                                            {% if feature.help_link %}
+                                                <a href="{{ feature.help_link }}" target="_blank" class="ms-2 text-primary text-decoration-none small"><i class="bi bi-calculator"></i> מחשבון</a>
+                                            {% endif %}
                                         </label>
                                     </div>
                                 {% elif feature.type == 'select' %}
                                     <label for="{{ feature.name }}" class="form-label fw-bold small" style="opacity: 0.8;">
                                         {{ feature.label }}
                                         <i class="bi bi-info-circle-fill info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ feature.tooltip }}"></i>
+                                        {% if feature.help_link %}
+                                            <a href="{{ feature.help_link }}" target="_blank" class="ms-2 text-primary text-decoration-none small"><i class="bi bi-calculator"></i> מחשבון</a>
+                                        {% endif %}
                                     </label>
                                     <select class="form-select feature-input" id="{{ feature.name }}" name="{{ feature.name }}" required>
                                         <option value="" disabled selected>בחר/י אפשרות...</option>
@@ -239,6 +245,9 @@
                                     <label for="{{ feature.name }}" class="form-label fw-bold small" style="opacity: 0.8;">
                                         {{ feature.label }}
                                         <i class="bi bi-info-circle-fill info-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ feature.tooltip }}"></i>
+                                        {% if feature.help_link %}
+                                            <a href="{{ feature.help_link }}" target="_blank" class="ms-2 text-primary text-decoration-none small"><i class="bi bi-calculator"></i> מחשבון</a>
+                                        {% endif %}
                                     </label>
                                     <input type="number"
                                            class="form-control feature-input"
@@ -317,7 +326,6 @@
             }
         }
 
-        // הפונקציה החדשה של הפידבק
         function sendFeedback(type) {
             document.getElementById('feedback-section').style.display = 'none';
             if (type === 'unknown') return;
