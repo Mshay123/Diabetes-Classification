@@ -54,7 +54,7 @@ FEATURES = [
     {"name": "DiffWalk", "label": "קשיי הליכה/ניידות", "type": "switch", "category": "מצבים רפואיים", "tooltip": "האם יש לך קושי משמעותי בהליכה או בניידות?"},
     {"name": "Sex", "label": "מין", "type": "select", "options": [(1, "גבר"), (0, "אישה")], "category": "מדדים אישיים", "tooltip": "המין שלך."},
     {"name": "Age", "label": "גיל (בשנים)", "type": "number", "min": 18, "max": 120, "category": "מדדים אישיים", "tooltip": "הזן/י את הגיל שלך בשנים."},
-    {"name": "BMI", "label": "מדד מסת גוף (BMI)", "type": "number", "min": 10, "max": 99, "category": "מדדים אישיים", "tooltip": "מדד מסת הגוף שלך."},
+    {"name": "BMI", "label": "מדד מסת גוף (BMI)", "type": "number", "min": 10, "max": 99, "category": "מדדים אישיים", "tooltip": "מדד מסת הגוף שלך.", "help_link": "https://www.calculator.net/bmi-calculator.html"},
     {"name": "GenHlth", "label": "בריאות כללית", "type": "select", "options": [(1, "מצוין"), (2, "טוב"), (3, "סביר"), (4, "גרוע"), (5, "מאוד גרוע")], "category": "מדדים אישיים", "tooltip": "איך היית מדרג/ת את הבריאות הכללית שלך?"},
     {"name": "Smoker", "label": "מעשן/ת", "type": "switch", "category": "אורח חיים", "tooltip": "האם עישנת לפחות 100 סיגריות במהלך חייך?"},
     {"name": "PhysActivity", "label": "פעילות גופנית", "type": "switch", "category": "אורח חיים", "tooltip": "האם עסקת בפעילות גופנית סדירה לאחרונה?"},
@@ -163,16 +163,25 @@ def index():
                 prediction = int(pred)
                 probability = round(prob, 2)
 
-                # הפקת גרף SHAP
+                # הפקת גרף SHAP חסין שגיאות
                 try:
                     plt.clf()
                     explainer = shap.TreeExplainer(xgb_model)
                     shap_values = explainer(df_input)
 
                     explanation = shap_values[0]
+                    
                     if len(explanation.values.shape) > 1:
                         explanation.values = explanation.values[:, 1]
-                        explanation.base_values = explanation.base_values[1]
+                    
+                    bv = explanation.base_values
+                    if isinstance(bv, (list, np.ndarray)):
+                        bv = bv[1] if len(bv) > 1 else bv[0]
+                    
+                    if isinstance(bv, str):
+                        bv = bv.replace('[', '').replace(']', '').replace('\'', '')
+                        
+                    explanation.base_values = float(bv)
 
                     plt.figure(figsize=(10, 6))
                     shap.plots.waterfall(explanation, show=False)
@@ -195,7 +204,9 @@ def index():
                         api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyA6L2n_HL2fpzyQNKDXDsoxS3FTRco_79A")
                         client = genai.Client(api_key=api_key)
                         content = f"מטופל עם סיכון לסוכרת. נתונים: {df_input.to_string()}\nשינויים מומלצים: {new_life.to_string()}\nכתוב המלצות רפואיות בעברית הכוללות צעדים מעשיים וצפי לשינוי. סכם בסוף שאתה מודל AI מבית Google ושזה אינו תחליף לייעוץ רפואי."
-                        response = client.models.generate_content(model="gemini-2.0-flash", contents=content)
+                        
+                        # מעודכן למודל 2.5 פלאש
+                        response = client.models.generate_content(model="gemini-2.5-flash", contents=content)
                         gemini_report = response.text
                     except Exception as e:
                         gemini_report = f"שגיאה בהפקת הדוח החכם: {str(e)}"
