@@ -168,6 +168,23 @@
                         {% endif %}
                     {% endif %}
 
+                    <div id="feedback-section" class="mt-4 text-center p-4" style="background: var(--box-bg); border-radius: 12px; border: 1px dashed var(--primary-color);">
+                        <h5 class="mb-3">עזור למודל להשתפר! האם האבחון תואם למציאות?</h5>
+                        <button class="btn btn-success me-2 px-4 rounded-pill" onclick="sendFeedback('correct')">
+                            <i class="bi bi-hand-thumbs-up-fill"></i> נכון
+                        </button>
+                        <button class="btn btn-danger me-2 px-4 rounded-pill" onclick="sendFeedback('incorrect')">
+                            <i class="bi bi-hand-thumbs-down-fill"></i> לא נכון
+                        </button>
+                        <button class="btn btn-outline-secondary px-4 rounded-pill" onclick="sendFeedback('unknown')">
+                            לא יודע / רק בדקתי
+                        </button>
+                    </div>
+
+                    <div id="feedback-stats" class="mt-4 text-center p-3" style="display: none; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+                        <h5 class="fw-bold m-0" style="color: var(--primary-color);" id="stats-text"></h5>
+                    </div>
+
                     <div class="text-center mt-5">
                         <a href="/" class="btn btn-outline-secondary px-5 py-2 rounded-pill" style="font-weight: 600; border-width: 2px;"><i class="bi bi-arrow-repeat"></i> בצע אבחון חדש</a>
                     </div>
@@ -177,7 +194,6 @@
         {% endif %}
 
         <form method="POST" action="/">
-
             <div class="text-center mb-5 model-selector">
                 <h5 class="mb-4" style="color: var(--text-color); font-weight: 600;">בחר ארכיטקטורת מודל להרצה:</h5>
                 <div class="btn-group" role="group">
@@ -299,6 +315,28 @@
                 localStorage.setItem('theme', 'light');
                 btn.innerHTML = '<i class="bi bi-moon-stars-fill"></i>';
             }
+        }
+
+        // הפונקציה החדשה של הפידבק
+        function sendFeedback(type) {
+            document.getElementById('feedback-section').style.display = 'none';
+            if (type === 'unknown') return;
+
+            fetch('/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedback: type })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    const statsDiv = document.getElementById('feedback-stats');
+                    const statsText = document.getElementById('stats-text');
+                    statsText.innerHTML = `<i class="bi bi-graph-up-arrow"></i> תודה על המשוב! עד כה, ${data.accuracy}% אישרו שהמודל צדק (${data.total} הצבעות).`;
+                    statsDiv.style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Error:', error));
         }
     </script>
 </body>
