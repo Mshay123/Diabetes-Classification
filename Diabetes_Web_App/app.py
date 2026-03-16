@@ -15,6 +15,7 @@ from flask import Flask, render_template, request, jsonify
 import xgboost as xgb
 from google import genai
 import traceback
+import re  # הוספנו את זה כדי לחלץ את המספר של SHAP בכוח
 
 app = Flask(__name__)
 
@@ -94,7 +95,8 @@ continuous_features = ['BMI', 'GenHlth', 'MentHlth', 'PhysHlth', 'Age', 'Educati
 
 d = dice_ml.Data(dataframe=df_dice_train, continuous_features=continuous_features, outcome_name='Diabetes_binary')
 m = dice_ml.Model(model=XGBoostDiCE(xgb_model), backend="sklearn")
-exp = dice_ml.Dice(d, m, method="genetic")
+# הנה השינוי מ-genetic ל-random כדי לחסוך בזיכרון!
+exp = dice_ml.Dice(d, m, method="random")
 
 # --- 4. פונקציות עזר ---
 def get_age_category(age):
@@ -163,7 +165,7 @@ def index():
                 prediction = int(pred)
                 probability = round(prob, 2)
 
-                # הפקת גרף SHAP חסין שגיאות
+                # הפקת גרף SHAP - התיקון המשוריין
                 try:
                     plt.clf()
                     explainer = shap.TreeExplainer(xgb_model)
@@ -174,14 +176,13 @@ def index():
                     if len(explanation.values.shape) > 1:
                         explanation.values = explanation.values[:, 1]
                     
-                    bv = explanation.base_values
-                    if isinstance(bv, (list, np.ndarray)):
-                        bv = bv[1] if len(bv) > 1 else bv[0]
-                    
-                    if isinstance(bv, str):
-                        bv = bv.replace('[', '').replace(']', '').replace('\'', '')
-                        
-                    explanation.base_values = float(bv)
+                    # צייד מספרים (Regex) - שולף את המספר החוצה מתוך כל פורמט מוזר
+                    bv_string = str(explanation.base_values)
+                    match = re.search(r'[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?', bv_string)
+                    if match:
+                        explanation.base_values = float(match.group())
+                    else:
+                        explanation.base_values = 0.0 # ברירת מחדל אם הוא ממש השתגע
 
                     plt.figure(figsize=(10, 6))
                     shap.plots.waterfall(explanation, show=False)
@@ -192,7 +193,7 @@ def index():
                     shap_plot_url = base64.b64encode(buf.getvalue()).decode('utf-8')
                     plt.close()
                 except Exception as e:
-                    print(f"SHAP Error: {e}")
+                    print(f"SHAP Error Details: {e}")
 
                 if prediction == 1:
                     try:
@@ -205,7 +206,6 @@ def index():
                         client = genai.Client(api_key=api_key)
                         content = f"מטופל עם סיכון לסוכרת. נתונים: {df_input.to_string()}\nשינויים מומלצים: {new_life.to_string()}\nכתוב המלצות רפואיות בעברית הכוללות צעדים מעשיים וצפי לשינוי. סכם בסוף שאתה מודל AI מבית Google ושזה אינו תחליף לייעוץ רפואי."
                         
-                        # מעודכן למודל 2.5 פלאש
                         response = client.models.generate_content(model="gemini-2.5-flash", contents=content)
                         gemini_report = response.text
                     except Exception as e:
